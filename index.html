@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPP MI ISLAMIYAH MALANG - Premium System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#f97316',
+                        secondary: '#ffffff',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        [x-cloak] { display: none !important; }
+        .tab-active { border-bottom: 3px solid #f97316; color: #f97316; font-weight: bold; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white; }
+            .shadow-sm, .shadow-xl { shadow: none !important; }
+        }
+        .animate-fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800" x-data="appData()">
+
+    <!-- Login Page -->
+    <div x-show="!isLoggedIn" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-500 to-orange-700 p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md animate-fade-in">
+            <div class="text-center mb-8">
+                <img src="https://sc04.alicdn.com/kf/S541e3569b154477b83e023c23b4e7362x.jpg" alt="Logo MI" class="w-32 mx-auto mb-4 drop-shadow-md">
+                <h1 class="text-2xl font-extrabold text-gray-800">MI ISLAMIYAH</h1>
+                <p class="text-orange-600 font-bold">KOTA MALANG</p>
+                <p class="text-gray-400 text-sm italic">Sistem Administrasi Guru & Supervisi</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Username</label>
+                    <div class="relative">
+                        <i class="fas fa-user absolute left-3 top-3 text-gray-300"></i>
+                        <input type="text" x-model="loginForm.username" class="w-full pl-10 pr-4 py-2 border rounded-xl focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Username">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Password</label>
+                    <div class="relative">
+                        <i class="fas fa-lock absolute left-3 top-3 text-gray-300"></i>
+                        <input type="password" x-model="loginForm.password" class="w-full pl-10 pr-4 py-2 border rounded-xl focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Password">
+                    </div>
+                </div>
+                <button @click="login()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl shadow-lg transform active:scale-95 transition flex items-center justify-center space-x-2">
+                    <i class="fas fa-sign-in-alt"></i><span>MASUK KE SISTEM</span>
+                </button>
+                <div x-show="loginError" class="text-red-500 text-center text-sm font-bold mt-2" x-text="loginError"></div>
+                
+                <div class="mt-6 pt-4 border-t text-center">
+                    <p class="text-xs text-gray-400">Copyright © 2026 MI ISLAMIYAH MALANG</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div x-show="isLoggedIn" x-cloak class="min-h-screen flex">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white shadow-xl flex flex-col hidden md:flex no-print">
+            <div class="p-6 border-b text-center">
+                <img src="https://sc04.alicdn.com/kf/S541e3569b154477b83e023c23b4e7362x.jpg" alt="Logo" class="w-20 mx-auto mb-2">
+                <h2 class="font-extrabold text-orange-600 leading-tight">MI ISLAMIYAH<br><span class="text-gray-400 text-xs">MALANG</span></h2>
+            </div>
+            <nav class="flex-1 p-4 space-y-2">
+                <!-- Guru Nav -->
+                <template x-if="userRole === 'guru'">
+                    <div class="space-y-2">
+                        <button @click="currentView = 'rpp'" :class="currentView === 'rpp' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:bg-orange-50'" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition font-semibold">
+                            <i class="fas fa-book"></i><span>Modul RPP</span>
+                        </button>
+                        <button @click="currentView = 'lkpd'" :class="currentView === 'lkpd' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:bg-orange-50'" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition font-semibold">
+                            <i class="fas fa-file-signature"></i><span>Modul LKPD</span>
+                        </button>
+                        <button @click="currentView = 'rubrik'" :class="currentView === 'rubrik' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:bg-orange-50'" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition font-semibold">
+                            <i class="fas fa-check-double"></i><span>Rubrik Penilaian</span>
+                        </button>
+                    </div>
+                </template>
+
+                <!-- Spv Nav -->
+                <template x-if="userRole === 'spv'">
+                    <button @click="currentView = 'supervisi'" :class="currentView === 'supervisi' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:bg-orange-50'" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition font-semibold">
+                        <i class="fas fa-tasks"></i><span>Supervisi RPP</span>
+                    </button>
+                </template>
+
+                <!-- Kepsek Nav -->
+                <template x-if="userRole === 'kepsek'">
+                    <div class="space-y-2">
+                        <button @click="currentView = 'dashboard'" :class="currentView === 'dashboard' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:bg-orange-50'" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition font-semibold">
+                            <i class="fas fa-chart-line"></i><span>Dashboard Grafik</span>
+                        </button>
+                        <button @click="currentView = 'guru_manage'" :class="currentView === 'guru_manage' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:bg-orange-50'" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition font-semibold">
+                            <i class="fas fa-users-cog"></i><span>Kelola Guru</span>
+                        </button>
+                    </div>
+                </template>
+            </nav>
+            <div class="p-4 border-t no-print">
+                <div class="bg-orange-50 p-4 rounded-xl mb-4 border border-orange-100">
+                    <p class="text-xs text-gray-500 font-bold uppercase">Role: <span x-text="userRole"></span></p>
+                    <p class="font-bold text-orange-700 truncate" x-text="username"></p>
+                </div>
+                <button @click="logout()" class="w-full flex items-center justify-center space-x-2 py-2 text-red-600 hover:bg-red-50 rounded-xl transition font-bold">
+                    <i class="fas fa-sign-out-alt"></i><span>Keluar</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto">
+            <header class="bg-white shadow-sm p-4 sticky top-0 z-10 flex justify-between items-center no-print">
+                <div class="flex items-center space-x-3 md:hidden">
+                    <img src="https://sc04.alicdn.com/kf/S541e3569b154477b83e023c23b4e7362x.jpg" alt="Logo" class="w-10">
+                    <span class="font-bold text-orange-600">MI ISLAMIYAH</span>
+                </div>
+                <h2 class="text-xl font-bold text-gray-700 capitalize" x-text="currentView.replace('_', ' ')"></h2>
+                <div class="flex items-center space-x-4">
+                    <button @click="window.print()" class="bg-gray-100 p-2 rounded-full hover:bg-gray-200 text-gray-600 transition" title="Cetak Halaman">
+                        <i class="fas fa-print"></i>
+                    </button>
+                    <span class="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-xs font-bold uppercase border border-orange-200" x-text="userRole"></span>
+                </div>
+            </header>
+
+            <div class="p-6">
+                <!-- View: RPP (GURU) -->
+                <div x-show="currentView === 'rpp'" class="space-y-6 animate-fade-in">
+                    <div class="bg-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden">
+                        <div class="flex border-b overflow-x-auto bg-gray-50 no-print">
+                            <button @click="rppTab = 1" :class="rppTab === 1 ? 'tab-active' : ''" class="px-6 py-4 whitespace-nowrap transition">Identitas</button>
+                            <button @click="rppTab = 2" :class="rppTab === 2 ? 'tab-active' : ''" class="px-6 py-4 whitespace-nowrap transition">Identifikasi</button>
+                            <button @click="rppTab = 3" :class="rppTab === 3 ? 'tab-active' : ''" class="px-6 py-4 whitespace-nowrap transition">Desain</button>
+                            <button @click="rppTab = 4" :class="rppTab === 4 ? 'tab-active' : ''" class="px-6 py-4 whitespace-nowrap transition">Pengalaman</button>
+                            <button @click="rppTab = 5" :class="rppTab === 5 ? 'tab-active' : ''" class="px-6 py-4 whitespace-nowrap transition">Asesmen</button>
+                        </div>
+                        
+                        <!-- Print Header (Hidden on screen) -->
+                        <div class="hidden print:block p-8 border-b-2 border-black mb-8">
+                            <div class="flex items-center justify-between">
+                                <img src="https://sc04.alicdn.com/kf/S541e3569b154477b83e023c23b4e7362x.jpg" class="w-24">
+                                <div class="text-center">
+                                    <h1 class="text-2xl font-bold">MODUL AJAR / RPP MI ISLAMIYAH</h1>
+                                    <p class="text-lg">Tahun Pelajaran 2025/2026</p>
+                                    <p class="text-sm italic">Jl. Terusan Danau Sentani No. 1, Kota Malang</p>
+                                </div>
+                                <div class="w-24"></div>
+                            </div>
+                        </div>
+
+                        <div class="p-6 md:p-8">
+                            <!-- Tab 1: Identitas -->
+                            <div x-show="rppTab === 1 || isPrinting" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div><label class="block text-sm font-bold text-gray-600 mb-2 uppercase">Mata Pelajaran</label><input type="text" x-model="activeRpp.mapel" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-orange-200 outline-none"></div>
+                                <div><label class="block text-sm font-bold text-gray-600 mb-2 uppercase">Kelas / Semester</label><input type="text" x-model="activeRpp.kelas" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-orange-200 outline-none"></div>
+                                <div><label class="block text-sm font-bold text-gray-600 mb-2 uppercase">Tema / Bab</label><input type="text" x-model="activeRpp.tema" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-orange-200 outline-none"></div>
+                                <div><label class="block text-sm font-bold text-gray-600 mb-2 uppercase">Alokasi Waktu</label><input type="text" x-model="activeRpp.waktu" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-orange-200 outline-none"></div>
+                            </div>
+                            
+                            <!-- Tab 2: Identifikasi -->
+                            <div x-show="rppTab === 2 || isPrinting" class="space-y-6">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-600 mb-2 uppercase">Profil Pelajar Pancasila & Rahmatan Lil Alamin</label>
+                                    <textarea x-model="activeRpp.profil" class="w-full p-3 border rounded-xl h-32 focus:ring-2 focus:ring-orange-200 outline-none"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-600 mb-2 uppercase">Indikator Ketercapaian (IKP)</label>
+                                    <textarea x-model="activeRpp.indikator" class="w-full p-3 border rounded-xl h-32 focus:ring-2 focus:ring-orange-200 outline-none"></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Tab 3: Desain -->
+                            <div x-show="rppTab === 3 || isPrinting" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-600 mb-2 uppercase">Fase CP</label>
+                                    <select x-model="activeRpp.fase" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-orange-200 outline-none">
+                                        <option>Fase A (Kls 1-2)</option><option>Fase B (Kls 3-4)</option><option>Fase C (Kls 5-6)</option>
+                                    </select>
+                                </div>
+                                <div><label class="block text-sm font-bold text-gray-600 mb-2 uppercase">Domain / Elemen</label><input type="text" x-model="activeRpp.domain" class="w-full p-3 border rounded-xl"></div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-bold text-gray-600 mb-2 uppercase">Model Pembelajaran & Kemitraan</label>
+                                    <textarea x-model="activeRpp.model" class="w-full p-3 border rounded-xl h-24" placeholder="Problem Based Learning, Kemitraan Orang Tua..."></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Tab 4: Pengalaman -->
+                            <div x-show="rppTab === 4 || isPrinting" class="space-y-6">
+                                <div class="p-4 bg-orange-50 rounded-2xl border-l-8 border-orange-500">
+                                    <h4 class="font-bold text-orange-700 mb-2"><i class="fas fa-play-circle mr-2"></i>Kegiatan Pendahuluan</h4>
+                                    <textarea x-model="activeRpp.pendahuluan" class="w-full p-3 border rounded-xl h-24"></textarea>
+                                </div>
+                                <div class="p-4 bg-blue-50 rounded-2xl border-l-8 border-blue-500">
+                                    <h4 class="font-bold text-blue-700 mb-2"><i class="fas fa-lightbulb mr-2"></i>Kegiatan Inti (Memahami, Aplikasi, Refleksi)</h4>
+                                    <textarea x-model="activeRpp.inti" class="w-full p-3 border rounded-xl h-48"></textarea>
+                                </div>
+                                <div class="p-4 bg-green-50 rounded-2xl border-l-8 border-green-500">
+                                    <h4 class="font-bold text-green-700 mb-2"><i class="fas fa-stop-circle mr-2"></i>Kegiatan Penutup</h4>
+                                    <textarea x-model="activeRpp.penutup" class="w-full p-3 border rounded-xl h-24"></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Tab 5: Asesmen -->
+                            <div x-show="rppTab === 5 || isPrinting" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div><label class="block text-sm font-bold text-gray-600 mb-2 uppercase">Asesmen Diagnostik</label><textarea x-model="activeRpp.diag" class="w-full p-3 border rounded-xl h-24"></textarea></div>
+                                <div><label class="block text-sm font-bold text-gray-600 mb-2 uppercase">Asesmen Formatif</label><textarea x-model="activeRpp.form" class="w-full p-3 border rounded-xl h-24"></textarea></div>
+                                <div><label class="block text-sm font-bold text-gray-600 mb-2 uppercase">Asesmen Sumatif</label><textarea x-model="activeRpp.sum" class="w-full p-3 border rounded-xl h-24"></textarea></div>
+                                <div><label class="block text-sm font-bold text-gray-600 mb-2 uppercase">Refleksi Guru</label><textarea x-model="activeRpp.ref" class="w-full p-3 border rounded-xl h-24"></textarea></div>
+                            </div>
+                            
+                            <div class="mt-10 flex justify-between items-center no-print">
+                                <button @click="resetRpp()" class="text-red-500 font-bold hover:underline">Reset Form</button>
+                                <button @click="saveRPP()" class="bg-orange-500 text-white px-10 py-4 rounded-2xl font-extrabold shadow-xl hover:bg-orange-600 transform hover:scale-105 transition">
+                                    <i class="fas fa-save mr-2"></i>SIMPAN & KIRIM KE SPV
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View: LKPD (GURU) -->
+                <div x-show="currentView === 'lkpd'" class="space-y-6 animate-fade-in">
+                    <div class="bg-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden">
+                        <div class="flex border-b bg-gray-50 no-print">
+                            <button @click="lkpdTab = 1" :class="lkpdTab === 1 ? 'tab-active' : ''" class="px-6 py-4">Identitas LKPD</button>
+                            <button @click="lkpdTab = 2" :class="lkpdTab === 2 ? 'tab-active' : ''" class="px-6 py-4">Aktivitas Siswa</button>
+                            <button @click="lkpdTab = 3" :class="lkpdTab === 3 ? 'tab-active' : ''" class="px-6 py-4">Refleksi Diri</button>
+                        </div>
+                        <div class="p-8">
+                            <div x-show="lkpdTab === 1 || isPrinting" class="space-y-6">
+                                <div><label class="block font-bold mb-2">Judul LKPD</label><input type="text" x-model="activeLkpd.judul" class="w-full p-4 border rounded-xl shadow-inner"></div>
+                                <div><label class="block font-bold mb-2">Petunjuk Belajar</label><textarea x-model="activeLkpd.petunjuk" class="w-full p-4 border rounded-xl h-32"></textarea></div>
+                            </div>
+                            <div x-show="lkpdTab === 2 || isPrinting" class="space-y-6">
+                                <div class="bg-orange-100 p-4 rounded-xl border-2 border-dashed border-orange-300">
+                                    <h4 class="font-bold text-orange-700 mb-2">Ayo Mengamati</h4>
+                                    <textarea x-model="activeLkpd.aktivitas1" class="w-full p-4 border rounded-xl h-24"></textarea>
+                                </div>
+                                <div class="bg-blue-100 p-4 rounded-xl border-2 border-dashed border-blue-300">
+                                    <h4 class="font-bold text-blue-700 mb-2">Diskusi Kelompok</h4>
+                                    <textarea x-model="activeLkpd.aktivitas2" class="w-full p-4 border rounded-xl h-24"></textarea>
+                                </div>
+                            </div>
+                            <div x-show="lkpdTab === 3 || isPrinting" class="space-y-6">
+                                <div class="space-y-3">
+                                    <p class="font-bold">Self Assessment:</p>
+                                    <div class="flex items-center space-x-3 bg-gray-50 p-3 rounded-xl"><input type="checkbox" class="w-5 h-5 accent-orange-500"> <span>Saya paham materi hari ini</span></div>
+                                    <div class="flex items-center space-x-3 bg-gray-50 p-3 rounded-xl"><input type="checkbox" class="w-5 h-5 accent-orange-500"> <span>Saya bekerja sama dengan baik</span></div>
+                                </div>
+                                <textarea x-model="activeLkpd.refleksi" class="w-full p-4 border rounded-xl h-32" placeholder="Catatan perasaanku setelah belajar..."></textarea>
+                            </div>
+                            <div class="mt-8 flex justify-end no-print">
+                                <button @click="alert('LKPD Disimpan!')" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold">SIMPAN LKPD</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View: Rubrik (GURU) -->
+                <div x-show="currentView === 'rubrik'" class="space-y-6 animate-fade-in">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-orange-100">
+                        <div class="flex justify-between items-center mb-6 no-print">
+                            <h3 class="font-extrabold text-gray-700 text-xl">Daftar Penilaian Siswa</h3>
+                            <button @click="addSiswa()" class="bg-orange-500 text-white px-6 py-2 rounded-xl font-bold shadow-md">+ Siswa</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full border-collapse">
+                                <thead class="bg-orange-500 text-white">
+                                    <tr>
+                                        <th class="p-4 border">Nama Siswa</th>
+                                        <th class="p-4 border text-xs">Tepat (1-4)</th>
+                                        <th class="p-4 border text-xs">Kerja (1-4)</th>
+                                        <th class="p-4 border text-xs">Rapi (1-4)</th>
+                                        <th class="p-4 border">Skor</th>
+                                        <th class="p-4 border">Nilai</th>
+                                        <th class="p-4 border">Predikat</th>
+                                        <th class="p-4 border no-print">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="(siswa, index) in dataSiswa" :key="index">
+                                        <tr class="hover:bg-orange-50 transition">
+                                            <td class="p-4 border"><input type="text" x-model="siswa.nama" class="w-full bg-transparent outline-none font-semibold"></td>
+                                            <td class="p-4 border text-center"><input type="number" min="1" max="4" x-model.number="siswa.s1" @input="calc(index)" class="w-12 text-center bg-transparent"></td>
+                                            <td class="p-4 border text-center"><input type="number" min="1" max="4" x-model.number="siswa.s2" @input="calc(index)" class="w-12 text-center bg-transparent"></td>
+                                            <td class="p-4 border text-center"><input type="number" min="1" max="4" x-model.number="siswa.s3" @input="calc(index)" class="w-12 text-center bg-transparent"></td>
+                                            <td class="p-4 border text-center font-bold" x-text="siswa.skor"></td>
+                                            <td class="p-4 border text-center font-bold text-orange-600" x-text="siswa.nilai"></td>
+                                            <td class="p-4 border text-center">
+                                                <span :class="getPredikatClass(siswa.skor)" class="px-3 py-1 rounded-full text-xs font-bold uppercase" x-text="siswa.predikat"></span>
+                                            </td>
+                                            <td class="p-4 border text-center no-print">
+                                                <button @click="dataSiswa.splice(index, 1)" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-10 p-6 bg-gray-50 rounded-2xl grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-bold no-print">
+                            <div class="flex items-center space-x-2"><div class="w-3 h-3 bg-green-500 rounded-full"></div><span>Sangat Baik (10-12)</span></div>
+                            <div class="flex items-center space-x-2"><div class="w-3 h-3 bg-blue-500 rounded-full"></div><span>Baik (7-9)</span></div>
+                            <div class="flex items-center space-x-2"><div class="w-3 h-3 bg-yellow-500 rounded-full"></div><span>Cukup (4-6)</span></div>
+                            <div class="flex items-center space-x-2"><div class="w-3 h-3 bg-red-500 rounded-full"></div><span>Perlu Bimbingan (≤3)</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View: Supervisi (SPV) -->
+                <div x-show="currentView === 'supervisi'" class="animate-fade-in">
+                    <div class="bg-orange-100 p-6 rounded-2xl mb-8 border border-orange-200 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-xl font-extrabold text-orange-800">Menunggu Supervisi</h3>
+                            <p class="text-orange-600">Total: <span x-text="rppList.length"></span> RPP masuk</p>
+                        </div>
+                        <i class="fas fa-clipboard-check text-orange-300 text-5xl"></i>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <template x-for="item in rppList" :key="item.id">
+                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl transition transform hover:-translate-y-1">
+                                <div class="flex justify-between items-start mb-6">
+                                    <div class="p-3 bg-orange-50 rounded-xl text-orange-500"><i class="fas fa-file-alt text-2xl"></i></div>
+                                    <span class="text-[10px] bg-yellow-100 text-yellow-600 px-3 py-1 rounded-full font-extrabold uppercase" x-text="item.status"></span>
+                                </div>
+                                <h3 class="font-extrabold text-lg text-gray-800" x-text="item.mapel"></h3>
+                                <p class="text-sm text-gray-400 mb-6 flex items-center"><i class="fas fa-user-edit mr-2"></i><span x-text="item.guru"></span></p>
+                                <button @click="selectedRpp = item; modalReview = true" class="w-full bg-gray-800 text-white py-3 rounded-xl font-bold hover:bg-black transition shadow-lg">REVIEW RPP</button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- View: Dashboard Grafik (Kepsek) -->
+                <div x-show="currentView === 'dashboard'" class="space-y-8 animate-fade-in">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div class="bg-white p-6 rounded-3xl shadow-sm border border-orange-50 flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-500"><i class="fas fa-chalkboard-teacher text-xl"></i></div>
+                            <div><p class="text-gray-400 text-xs font-bold uppercase">Total Guru</p><p class="text-2xl font-black">42</p></div>
+                        </div>
+                        <div class="bg-white p-6 rounded-3xl shadow-sm border border-orange-50 flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center text-green-500"><i class="fas fa-file-check text-xl"></i></div>
+                            <div><p class="text-gray-400 text-xs font-bold uppercase">RPP Selesai</p><p class="text-2xl font-black">128</p></div>
+                        </div>
+                        <div class="bg-white p-6 rounded-3xl shadow-sm border border-orange-50 flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-500"><i class="fas fa-graduation-cap text-xl"></i></div>
+                            <div><p class="text-gray-400 text-xs font-bold uppercase">Rata Nilai</p><p class="text-2xl font-black">84.5</p></div>
+                        </div>
+                        <div class="bg-white p-6 rounded-3xl shadow-sm border border-orange-50 flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-purple-100 rounded-2xl flex items-center justify-center text-purple-500"><i class="fas fa-calendar-alt text-xl"></i></div>
+                            <div><p class="text-gray-400 text-xs font-bold uppercase">Hadir Guru</p><p class="text-2xl font-black">96%</p></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-50">
+                            <h3 class="font-black text-gray-700 mb-6 flex items-center"><i class="fas fa-chart-line mr-3 text-orange-500"></i>Aktivitas Guru (RPP)</h3>
+                            <canvas id="lineChart" height="200"></canvas>
+                        </div>
+                        <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-50">
+                            <h3 class="font-black text-gray-700 mb-6 flex items-center"><i class="fas fa-chart-pie mr-3 text-orange-500"></i>Distribusi Predikat Siswa</h3>
+                            <div class="max-w-[250px] mx-auto"><canvas id="doughnutChart"></canvas></div>
+                        </div>
+                        <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-50">
+                            <h3 class="font-black text-gray-700 mb-6 flex items-center"><i class="fas fa-chart-bar mr-3 text-orange-500"></i>Perbandingan Nilai Per Kelas</h3>
+                            <canvas id="barChart" height="200"></canvas>
+                        </div>
+                        <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-50">
+                            <h3 class="font-black text-gray-700 mb-6 flex items-center"><i class="fas fa-user-clock mr-3 text-orange-500"></i>Presensi Bulanan Guru</h3>
+                            <canvas id="barChart2" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View: Kelola Guru (Kepsek) -->
+                <div x-show="currentView === 'guru_manage'" class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden animate-fade-in">
+                    <div class="p-8 border-b bg-gray-50 flex justify-between items-center">
+                        <div><h3 class="font-black text-xl text-gray-800">Manajemen Tenaga Pengajar</h3><p class="text-gray-400 text-sm">Update status & data guru berkala</p></div>
+                        <button @click="showAddGuru = true" class="bg-orange-500 text-white px-6 py-3 rounded-2xl font-bold shadow-lg transform hover:scale-105 transition">+ Tambah Guru</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-white text-left text-[10px] uppercase text-gray-400 font-black tracking-widest">
+                                <tr>
+                                    <th class="p-6">Identitas</th>
+                                    <th class="p-6">Mata Pelajaran</th>
+                                    <th class="p-6">Terakhir Aktif</th>
+                                    <th class="p-6">Status</th>
+                                    <th class="p-6 text-center">Tindakan</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50">
+                                <template x-for="guru in listGuru">
+                                    <tr class="hover:bg-orange-50 transition group">
+                                        <td class="p-6">
+                                            <div class="flex items-center space-x-3">
+                                                <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-orange-500 font-bold" x-text="guru.nama.charAt(0)"></div>
+                                                <div><p class="font-extrabold text-gray-800" x-text="guru.nama"></p><p class="text-xs text-gray-400" x-text="'@' + guru.username"></p></div>
+                                            </div>
+                                        </td>
+                                        <td class="p-6 font-semibold text-gray-600" x-text="guru.mapel"></td>
+                                        <td class="p-6 text-gray-400 text-sm" x-text="new Date().toLocaleDateString('id-ID')"></td>
+                                        <td class="p-6">
+                                            <span :class="guru.status === 'Aktif' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'" 
+                                                  class="px-3 py-1 rounded-full text-[10px] font-black uppercase" x-text="guru.status"></span>
+                                        </td>
+                                        <td class="p-6 text-center">
+                                            <div class="flex justify-center space-x-2 opacity-0 group-hover:opacity-100 transition">
+                                                <button class="w-8 h-8 bg-blue-50 text-blue-500 rounded-lg hover:bg-blue-500 hover:text-white transition"><i class="fas fa-edit"></i></button>
+                                                <button class="w-8 h-8 bg-red-50 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition"><i class="fas fa-trash"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Review (SPV) -->
+    <div x-show="modalReview" x-cloak class="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl animate-fade-in">
+            <div class="p-8 border-b flex justify-between items-center bg-orange-50">
+                <div class="flex items-center space-x-3"><i class="fas fa-search-plus text-orange-500 text-2xl"></i><h2 class="text-xl font-black">Evaluasi RPP</h2></div>
+                <button @click="modalReview = false" class="text-gray-400 hover:text-black"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
+                <div class="bg-gray-50 p-6 rounded-2xl grid grid-cols-2 gap-6">
+                    <div><p class="text-[10px] uppercase font-bold text-gray-400">Mata Pelajaran</p><p class="font-black text-gray-800" x-text="selectedRpp?.mapel"></p></div>
+                    <div><p class="text-[10px] uppercase font-bold text-gray-400">Guru Pengampu</p><p class="font-black text-gray-800" x-text="selectedRpp?.guru"></p></div>
+                </div>
+                <div>
+                    <label class="block font-black text-gray-700 mb-4">Checklist Komponen</label>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center p-4 bg-white border rounded-2xl">
+                            <span class="font-semibold text-gray-600">Alur Tujuan Pembelajaran (ATP)</span>
+                            <select class="bg-gray-50 p-2 rounded-lg font-bold outline-none"><option>Sesuai</option><option>Perlu Revisi</option><option>Kurang Lengkap</option></select>
+                        </div>
+                        <div class="flex justify-between items-center p-4 bg-white border rounded-2xl">
+                            <span class="font-semibold text-gray-600">Skenario Pembelajaran Diferensiasi</span>
+                            <select class="bg-gray-50 p-2 rounded-lg font-bold outline-none"><option>Sangat Baik</option><option>Cukup</option><option>Belum Terlihat</option></select>
+                        </div>
+                        <div class="flex justify-between items-center p-4 bg-white border rounded-2xl">
+                            <span class="font-semibold text-gray-600">Integrasi Nilai Islami</span>
+                            <select class="bg-gray-50 p-2 rounded-lg font-bold outline-none"><option>Terlihat</option><option>Tidak Ada</option></select>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-black text-gray-700 mb-2">Umpan Balik / Catatan</label>
+                    <textarea class="w-full p-4 border rounded-2xl h-32 bg-gray-50 focus:bg-white transition outline-none" placeholder="Tuliskan saran konstruktif untuk guru..."></textarea>
+                </div>
+            </div>
+            <div class="p-8 border-t bg-gray-50 flex justify-end space-x-4">
+                <button @click="modalReview = false" class="px-6 py-3 font-bold text-gray-400 hover:text-black transition uppercase">Tutup</button>
+                <button @click="modalReview = false" class="px-8 py-3 bg-red-100 text-red-600 rounded-2xl font-black shadow-sm hover:bg-red-200 transition uppercase text-sm">Revisi</button>
+                <button @click="modalReview = false" class="px-8 py-3 bg-orange-500 text-white rounded-2xl font-black shadow-xl hover:bg-orange-600 transform hover:scale-105 transition uppercase text-sm">Setujui RPP</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function appData() {
+            return {
+                isLoggedIn: false,
+                isPrinting: false,
+                username: '',
+                userRole: '',
+                currentView: 'dashboard',
+                loginError: '',
+                loginForm: { username: '', password: '' },
+                
+                // Tabs
+                rppTab: 1,
+                lkpdTab: 1,
+                
+                // Form Data (Active)
+                activeRpp: {
+                    mapel: "Akidah Akhlak", kelas: "IV / Ganjil", tema: "Indahnya Berbagi dengan Zakat", waktu: "2 x 35 Menit",
+                    profil: "Beriman, Bertakwa kepada Tuhan YME, Mandiri, Bergotong Royong, Berkeadaban (Ta’addub).",
+                    indikator: "1. Siswa dapat menjelaskan pengertian zakat.\n2. Siswa dapat melafalkan niat zakat fitrah.\n3. Siswa dapat mensimulasikan tata cara berzakat.",
+                    fase: "Fase B (Kls 3-4)", domain: "Fikih Ibadah", model: "Problem Based Learning (PBL) & Diskusi Kelompok",
+                    pendahuluan: "1. Salam & Doa Pembuka.\n2. Presensi Siswa.\n3. Apersepsi: Tanya jawab pengalaman memberi sedekah.",
+                    inti: "1. Orientasi: Siswa menonton video tentang antrean zakat.\n2. Organisasi: Membagi kelompok diskusi muzzaki dan mustahik.\n3. Aplikasi: Simulasi perhitungan zakat fitrah sederhana.",
+                    penutup: "1. Kesimpulan bersama.\n2. Refleksi perasaan siswa.\n3. Doa & Salam Penutup.",
+                    diag: "Tanya jawab lisan tentang rukun islam.", form: "Observasi diskusi & Keaktifan.", sum: "Tes tertulis 5 soal pilihan ganda.", ref: "Sebagian siswa masih bingung membedakan mustahik."
+                },
+                activeLkpd: {
+                    judul: "LKPD 01: Mari Mengenal Zakat Fitrah",
+                    petunjuk: "Bacalah materi pada buku paket hal. 12 sebelum mengerjakan tugas ini.",
+                    aktivitas1: "Amatilah gambar orang yang sedang berzakat, ceritakan apa yang mereka lakukan!",
+                    aktivitas2: "Diskusikan dengan temanmu siapa saja yang berhak menerima zakat!",
+                    refleksi: "Aku sangat senang belajar zakat hari ini karena bisa membantu orang lain."
+                },
+                
+                // Rubrik Data Dummy
+                dataSiswa: [
+                    { nama: 'Ahmad Fauzi', s1: 4, s2: 3, s3: 4, skor: 11, nilai: 92, predikat: 'SANGAT BAIK' },
+                    { nama: 'Siti Aminah', s1: 3, s2: 4, s3: 3, skor: 10, nilai: 83, predikat: 'SANGAT BAIK' },
+                    { nama: 'Budi Santoso', s1: 2, s2: 3, s3: 2, skor: 7, nilai: 58, predikat: 'BAIK' },
+                    { nama: 'Laila Husna', s1: 3, s2: 2, s3: 3, skor: 8, nilai: 67, predikat: 'BAIK' },
+                    { nama: 'Diki Chandra', s1: 1, s2: 2, s3: 1, skor: 4, nilai: 33, predikat: 'CUKUP' }
+                ],
+                
+                // SPV Data Dummy
+                rppList: [
+                    { id: 1, mapel: 'Fikih Ibadah', guru: 'Ust. Zulkifli, S.Pd', status: 'Pending' },
+                    { id: 2, mapel: 'Bahasa Arab', guru: 'Ustzh. Laila Husna, M.Pd', status: 'Pending' },
+                    { id: 3, mapel: 'Al-Qur\'an Hadits', guru: 'Ust. Mansur, S.Ag', status: 'Pending' },
+                    { id: 4, mapel: 'SKL', guru: 'Ustzh. Mariam, M.Pd', status: 'Pending' }
+                ],
+                selectedRpp: null,
+                modalReview: false,
+                
+                // Kepsek Data Dummy
+                listGuru: [
+                    { nama: 'Zulkifli, S.Pd', username: 'zulkifli', mapel: 'Fikih & Akidah', status: 'Aktif' },
+                    { nama: 'Laila Husna, M.Pd', username: 'laila', mapel: 'Bahasa Arab', status: 'Aktif' },
+                    { nama: 'Ahmad Yani, S.Ag', username: 'yani', mapel: 'Matematika', status: 'Cuti' },
+                    { nama: 'Dewi Sartika, S.Pd', username: 'dewi', mapel: 'Bahasa Inggris', status: 'Aktif' },
+                    { nama: 'Mansur, S.Ag', username: 'mansur', mapel: 'Al-Qur\'an Hadits', status: 'Aktif' }
+                ],
+                showAddGuru: false,
+
+                init() {
+                    window.onbeforeprint = () => { this.isPrinting = true; };
+                    window.onafterprint = () => { this.isPrinting = false; };
+                    
+                    // Load from local storage
+                    const savedRpp = localStorage.getItem('rpp_trial_data');
+                    if (savedRpp) this.activeRpp = JSON.parse(savedRpp);
+                },
+
+                login() {
+                    const { username, password } = this.loginForm;
+                    if (username === 'guru' && password === 'guru123') {
+                        this.userRole = 'guru';
+                        this.currentView = 'rpp';
+                    } else if (username === 'spv' && password === 'spv123') {
+                        this.userRole = 'spv';
+                        this.currentView = 'supervisi';
+                    } else if (username === 'kepsek' && password === 'kepsek123') {
+                        this.userRole = 'kepsek';
+                        this.currentView = 'dashboard';
+                        setTimeout(() => this.initCharts(), 100);
+                    } else {
+                        this.loginError = 'Username atau Password salah!';
+                        return;
+                    }
+                    this.username = username;
+                    this.isLoggedIn = true;
+                    this.loginError = '';
+                },
+
+                logout() {
+                    this.isLoggedIn = false;
+                    this.loginForm = { username: '', password: '' };
+                },
+
+                calc(index) {
+                    const s = this.dataSiswa[index];
+                    s.skor = (s.s1 || 0) + (s.s2 || 0) + (s.s3 || 0);
+                    s.nilai = Math.round((s.skor / 12) * 100);
+                    if (s.skor >= 10) s.predikat = 'SANGAT BAIK';
+                    else if (s.skor >= 7) s.predikat = 'BAIK';
+                    else if (s.skor >= 4) s.predikat = 'CUKUP';
+                    else s.predikat = 'PERLU BIMBINGAN';
+                },
+
+                getPredikatClass(skor) {
+                    if (skor >= 10) return 'bg-green-100 text-green-600';
+                    if (skor >= 7) return 'bg-blue-100 text-blue-600';
+                    if (skor >= 4) return 'bg-yellow-100 text-yellow-600';
+                    return 'bg-red-100 text-red-600';
+                },
+
+                addSiswa() {
+                    this.dataSiswa.push({ nama: 'Siswa Baru', s1: 1, s2: 1, s3: 1, skor: 3, nilai: 25, predikat: 'PERLU BIMBINGAN' });
+                },
+
+                saveRPP() {
+                    localStorage.setItem('rpp_trial_data', JSON.stringify(this.activeRpp));
+                    alert('BERHASIL!\nData RPP telah disimpan ke database trial dan dikirim ke supervisor.');
+                },
+
+                resetRpp() {
+                    if(confirm('Hapus semua inputan RPP?')) {
+                        this.activeRpp = { mapel: "", kelas: "", tema: "", waktu: "", profil: "", indikator: "", fase: "Fase A", domain: "", model: "", pendahuluan: "", inti: "", penutup: "", diag: "", form: "", sum: "", ref: "" };
+                    }
+                },
+
+                initCharts() {
+                    const ctxLine = document.getElementById('lineChart');
+                    if (ctxLine) {
+                        new Chart(ctxLine, {
+                            type: 'line',
+                            data: {
+                                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun'],
+                                datasets: [{
+                                    label: 'RPP Selesai',
+                                    data: [25, 38, 30, 45, 40, 52],
+                                    borderColor: '#f97316',
+                                    backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                                    fill: true,
+                                    tension: 0.4
+                                }]
+                            },
+                            options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+                        });
+                    }
+
+                    const ctxDoughnut = document.getElementById('doughnutChart');
+                    if (ctxDoughnut) {
+                        new Chart(ctxDoughnut, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['A', 'B', 'C', 'D'],
+                                datasets: [{
+                                    data: [60, 25, 10, 5],
+                                    backgroundColor: ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444'],
+                                    borderWidth: 0
+                                }]
+                            },
+                            options: { cutout: '70%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
+                        });
+                    }
+
+                    const ctxBar = document.getElementById('barChart');
+                    if (ctxBar) {
+                        new Chart(ctxBar, {
+                            type: 'bar',
+                            data: {
+                                labels: ['Kls 1', 'Kls 2', 'Kls 3', 'Kls 4', 'Kls 5', 'Kls 6'],
+                                datasets: [{
+                                    label: 'Rata Nilai',
+                                    data: [82, 85, 78, 88, 90, 84],
+                                    backgroundColor: '#f97316',
+                                    borderRadius: 10
+                                }]
+                            },
+                            options: { plugins: { legend: { display: false } } }
+                        });
+                    }
+
+                    const ctxBar2 = document.getElementById('barChart2');
+                    if (ctxBar2) {
+                        new Chart(ctxBar2, {
+                            type: 'bar',
+                            data: {
+                                labels: ['Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu 4'],
+                                datasets: [{
+                                    label: 'Kehadiran (%)',
+                                    data: [98, 95, 99, 97],
+                                    backgroundColor: '#8b5cf6',
+                                    borderRadius: 10
+                                }]
+                            },
+                            options: { plugins: { legend: { display: false } }, scales: { y: { max: 100, beginAtZero: true } } }
+                        });
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
